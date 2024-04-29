@@ -186,6 +186,74 @@ def Tensor_ConcatOp : Tensor_Op<"concat",
 }
 
 //===----------------------------------------------------------------------===//
+// SplitOp
+//===----------------------------------------------------------------------===//
+
+def Tensor_SplitOp : Tensor_Op<"split",
+    [Pure,
+     DeclareOpInterfaceMethods<OpAsmOpInterface, ["getAsmResultNames"]>,
+     DeclareOpInterfaceMethods<ReifyRankedShapedTypeOpInterface>]> {
+  let summary = "tensor split operation";
+  let description = [{
+    The "split" operation depart a tensor into a variadic list of output
+    tensors, splited along a static dimension number. All inputs and the
+    result type must share the same rank.
+
+    `dim` specifies the dimension along which to be splited. The sum of the size of the
+    splited dimension in the result must be equal to the size
+    of the input along that dimension. All other dimensions in both the inputs
+    and result must be the same size.
+
+    `strides` specifies split_size_or_sections
+
+    Example:
+
+    ```mlir
+    %1, %2, %3 = tensor.split dim(0) strides([1, 2, 4]) %0 :
+        tensor<7x6xf32> -> (tensor<1x6xf32>, tensor<2x6xf32>, tensor<4x6xf32)
+
+    %1, %2, %3 = tensor.split dim(0) strides([3]) %0 :
+        tensor<7x6xf32> -> (tensor<3x6xf32>, tensor<3x6xf32>, tensor<1x6xf32)
+    ```
+  }];
+  let arguments = (ins I64Attr:$dim,
+                       DenseI64ArrayAttr:$strides,
+                       AnyRankedTensor:$input);
+  let results = (outs Variadic<AnyRankedTensor>:$results);
+  let assemblyFormat = [{
+    `dim` `(` $dim `)` `strides` `(` $strides `)` $input attr-dict
+    `:` functional-type(operands, results)
+  }];
+
+  let builders = [
+    // Builder with an inferred result type.
+    OpBuilder<(ins "int64_t":$dim, "ArrayRef<int64_t>":$strides, "Value":$input)>,
+  ];
+
+  let extraClassDeclaration = [{
+    // Helper to infer the splited result type for the given input
+    // types, being splited along `dim`. Because split can specify
+    // more static information than can automatically be inferred,
+    // InferTypeOpInterface is not used.
+    static ArrayRef<RankedTensorType> inferResultType(int64_t dim, ArrayRef<int64_t> strides, RankedTensorType inputType);
+
+    static ArrayRef<int64_t> getSections(int64_t dim, ArrayRef<int64_t> strides, RankedTensorType inputType);
+
+    RankedTensorType getInputType() {
+      return ::llvm::cast<RankedTensorType>(getInput().getType());
+    }
+
+    int64_t getRank() {
+      return ::llvm::cast<RankedTensorType>(getInput().getType()).getRank();
+    }
+  }];
+
+  let hasCanonicalizer = 1;
+  let hasFolder = 1;
+  let hasVerifier = 1;
+}
+
+//===----------------------------------------------------------------------===//
 // DimOp
 //===----------------------------------------------------------------------===//
 

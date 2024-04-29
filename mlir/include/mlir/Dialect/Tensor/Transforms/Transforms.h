@@ -74,6 +74,13 @@ void populateFoldTensorEmptyPatterns(RewritePatternSet &patterns,
 /// that it can be bufferized into a sequence of copies.
 void populateDecomposeTensorConcatPatterns(RewritePatternSet &patterns);
 
+/// Populates `patterns` with patterns that decompose `tensor.split` into
+/// `tensor.empty` of a tensor of the splited size, followed by a chain
+/// of `tensor.insert_slice` operations on the inputs. This is intended to be
+/// used as a fallback tensor -> tensor lowering that decomposes split such
+/// that it can be bufferized into a sequence of copies.
+void populateDecomposeTensorSplitPatterns(RewritePatternSet &patterns);
+
 /// Populates `patterns` with patterns that simplify `tensor.pack` and
 /// `tensor.unpack` operations.
 void populateSimplifyPackAndUnpackPatterns(RewritePatternSet &patterns);

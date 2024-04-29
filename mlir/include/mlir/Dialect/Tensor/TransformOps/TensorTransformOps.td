@@ -26,6 +26,16 @@ def ApplyDecomposeTensorConcatPatternsOp : Op<Transform_Dialect,
   let assemblyFormat = "attr-dict";
 }
 
+def ApplyDecomposeTensorSplitPatternsOp : Op<Transform_Dialect,
+    "apply_patterns.tensor.decompose_split",
+    [DeclareOpInterfaceMethods<PatternDescriptorOpInterface>]> {
+  let description = [{
+    Indicates that tensor.split ops should be decomposed into a chain of
+    tensor.insert_slice operations inserting into a materialized destination.
+  }];
+
+  let assemblyFormat = "attr-dict";
+}
 
 def ApplyDropRedundantInsertSliceRankExpansionPatternsOp : Op<Transform_Dialect,
     "apply_patterns.tensor.drop_redundant_insert_slice_rank_expansion",

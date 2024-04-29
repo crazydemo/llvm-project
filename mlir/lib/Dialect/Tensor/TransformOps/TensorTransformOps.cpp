@@ -90,6 +90,11 @@ void transform::ApplyDecomposeTensorConcatPatternsOp::populatePatterns(
   tensor::populateDecomposeTensorConcatPatterns(patterns);
 }
 
+void transform::ApplyDecomposeTensorSplitPatternsOp::populatePatterns(
+    RewritePatternSet &patterns) {
+  tensor::populateDecomposeTensorSplitPatterns(patterns);
+}
+
 void transform::ApplyDropRedundantInsertSliceRankExpansionPatternsOp::
     populatePatterns(RewritePatternSet &patterns) {
   tensor::populateDropRedundantInsertSliceRankExpansionPatterns(patterns);

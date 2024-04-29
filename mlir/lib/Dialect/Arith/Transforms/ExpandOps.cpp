@@ -333,7 +333,7 @@ struct ArithExpandOpsPass
     arith::populateArithExpandOpsPatterns(patterns);
 
     target.addLegalDialect<arith::ArithDialect>();
-    // clang-format off
+    // clang-format off 
     target.addIllegalOp<
       arith::CeilDivSIOp,
       arith::CeilDivUIOp,

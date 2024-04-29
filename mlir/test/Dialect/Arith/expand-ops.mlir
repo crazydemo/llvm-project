@@ -280,3 +280,14 @@ func.func @truncf_vector_f32(%arg0 : vector<4xf32>) -> vector<4xbf16> {
 
 // CHECK-LABEL: @truncf_vector_f32
 // CHECK-NOT: arith.truncf
+
+
+func.func @maximumbf16(%a: bf16, %b: bf16) -> bf16 {
+  %result = arith.maximumf %a, %b : bf16
+  return %result : bf16
+}
+
+func.func @textf_vector_bf16(%arg0 : vector<4xbf16>) -> vector<4xf32> {
+    %0 = arith.extf %arg0 : vector<4xbf16> to vector<4xf32>
+    return %0 : vector<4xf32>
+}

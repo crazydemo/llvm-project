@@ -83,3 +83,10 @@ func.func @sequences(%arg0: f16) -> f16 {
   %1 = math.sin %0 : f16
   return %1 : f16
 }
+
+
+func.func @bf16_sin_vector(%arg0: vector<32x32x32xbf16>) -> vector<32x32x32xbf16> {
+  %0 = math.absf %arg0 : vector<32x32x32xbf16>
+  %1 = math.sin %0 : vector<32x32x32xbf16>
+  return %1 : vector<32x32x32xbf16>
+}

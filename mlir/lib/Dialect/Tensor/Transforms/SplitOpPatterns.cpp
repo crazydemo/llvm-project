@@ -12,6 +12,7 @@
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Tensor/Transforms/Transforms.h"
 #include "mlir/IR/PatternMatch.h"
+#include <iostream>
 
 using namespace mlir;
 using namespace mlir::tensor;
@@ -34,6 +35,7 @@ struct DecomposeTensorSplitOp : public OpRewritePattern<SplitOp> {
 
   LogicalResult matchAndRewrite(SplitOp splitOp,
                                 PatternRewriter &rewriter) const override {
+    std::cout << "split pattern decompose" << std::endl;
     Location loc = splitOp.getLoc();
 
     // Gather destination tensors.

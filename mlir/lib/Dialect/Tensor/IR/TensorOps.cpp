@@ -766,6 +766,7 @@ ArrayRef<int64_t> SplitOp::getSections(int64_t dim, ArrayRef<int64_t> strides,
 
 void SplitOp::build(OpBuilder &builder, OperationState &result, int64_t dim,
                     ArrayRef<int64_t> strides, Value input) {
+  std::cout << "split build" << std::endl;
   FailureOr<ArrayRef<RankedTensorType>> resultTypes = inferResultType(
       dim, strides, llvm::cast<RankedTensorType>(input.getType()));
   assert(succeeded(resultTypes) && "failed to infer split result types");
@@ -829,13 +830,14 @@ LogicalResult SplitOp::verify() {
              << inputType << "does not match inferred shape "
              << inferredInputType << " static sizes";
   }
-
+  std::cout << "split build end" << std::endl;
   return success();
 }
 
 LogicalResult
 SplitOp::reifyResultShapes(OpBuilder &builder,
                            ReifiedRankedShapedTypeDims &reifiedReturnShapes) {
+  std::cout << "split reifyResultShapes" << std::endl;
   auto input = getInput();
   int64_t dim = getDim();
   auto strides = getStrides();
@@ -874,25 +876,24 @@ void SplitOp::getAsmResultNames(
 
 LogicalResult SplitOp::fold(FoldAdaptor,
                             SmallVectorImpl<OpFoldResult> &results) {
-  // Value input = getInput();
-  // ArrayRef<int64_t> strides = getStrides();
-  // if (strides.size() == 0 && !results.empty() &&
-  //     getInputType() == results[0].getType())
-  //   return input;
-  return success();
+  Value input = getInput();
+  if (getResults().size() == 1 && input.getType() == getResultTypes()[0]) {
+    results.push_back(input);
+    return success();
+  }
+  return failure();
 }
 
 namespace {
-/// Fold a split op with a single input to a cast.
+/// Fold a split op with a single output to do nothing.
 struct SingleInputSplitOp : public OpRewritePattern<SplitOp> {
   using OpRewritePattern<SplitOp>::OpRewritePattern;
 
   LogicalResult matchAndRewrite(SplitOp splitOp,
                                 PatternRewriter &rewriter) const override {
-    if (!splitOp.getInput())
-      return failure();
-    rewriter.replaceOpWithNewOp<CastOp>(
-        splitOp, splitOp.getResults()[0].getType(), splitOp.getInput());
+    if (splitOp.getResults().size() == 1)
+      rewriter.replaceOpWithNewOp<CastOp>(
+          splitOp, splitOp.getResults()[0].getType(), splitOp.getInput());
     return success();
   }
 };

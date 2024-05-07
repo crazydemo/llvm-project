@@ -549,7 +549,6 @@ void ConcatOp::build(OpBuilder &builder, OperationState &result, int64_t dim,
 }
 
 LogicalResult ConcatOp::verify() {
-  std::cout << "concat :" << bool(getInputs().size() < 1) << std::endl;
   if (getInputs().size() < 1)
     return emitOpError("requires at least one input");
 
@@ -664,7 +663,6 @@ ConcatOp::reifyResultShapes(OpBuilder &builder,
 
 void ConcatOp::getAsmResultNames(
     function_ref<void(Value, StringRef)> setNameFn) {
-  std::cout << "ConcatOp get name" << std::endl;
   setNameFn(getResult(), "concat");
 }
 
@@ -703,24 +701,23 @@ void ConcatOp::getCanonicalizationPatterns(RewritePatternSet &results,
 ArrayRef<RankedTensorType>
 SplitOp::inferResultType(int64_t dim, ArrayRef<int64_t> strides,
                          RankedTensorType inputType) {
-  ArrayRef<int64_t> sections = getSections(dim, strides, inputType);
-  int64_t n_sections = sections.size();
-  // assert(!inputType && "cannot split 0 tensors");
-  // assert(!strides.empty() && "cannot do null split");
-  // SaturatedInteger Splitsize;
-  // Splitsize =
-  //     *Splitsize.desaturate(SaturatedInteger::wrap(inputType.getDimSize(dim)));
-  // int64_t n_sections =
-  //     strides.size() == 1
-  //         ? (Splitsize.asInteger() + strides[0] - 1) / strides[0]
-  //         : strides.size();
-  // SmallVector<int64_t> sections(n_sections);
-  // for (int64_t i = 0; i < n_sections; ++i) {
-  //   sections[i] = strides.size() > 1    ? strides[i]
-  //                 : i == n_sections - 1 ? Splitsize.asInteger() %
-  //                 strides[0]
-  //                                       : strides[0];
-  // }
+  assert(!strides.empty() && "cannot do null split");
+  SaturatedInteger Splitsize;
+  Splitsize =
+      *Splitsize.desaturate(SaturatedInteger::wrap(inputType.getDimSize(dim)));
+  int64_t n_sections =
+      strides.size() == 1
+          ? (Splitsize.asInteger() + strides[0] - 1) / strides[0]
+          : strides.size();
+  SmallVector<int64_t> sections(n_sections);
+  for (int64_t i = 0; i < n_sections; ++i) {
+    sections[i] = strides.size() > 1 ? strides[i]
+                  : (i == n_sections - 1 && Splitsize.asInteger() % strides[0])
+                      ? Splitsize.asInteger() % strides[0]
+                      : strides[0];
+  }
+  // ArrayRef<int64_t> sections = getSections(dim, strides, inputType);
+  // int64_t n_sections = sections.size();
 
   int64_t splitRank = inputType.getRank();
 
@@ -737,7 +734,7 @@ SplitOp::inferResultType(int64_t dim, ArrayRef<int64_t> strides,
       size = *size.desaturate(SaturatedInteger::wrap(inputType.getDimSize(i)));
       sizes[i] = size.asInteger();
     }
-    auto sectionSize = SaturatedInteger::wrap(strides[n]);
+    auto sectionSize = SaturatedInteger::wrap(sections[n]);
     sizes[dim] = sectionSize.asInteger();
     resultTypes[n] = RankedTensorType::get(sizes, inputType.getElementType());
   }
@@ -746,7 +743,7 @@ SplitOp::inferResultType(int64_t dim, ArrayRef<int64_t> strides,
 
 ArrayRef<int64_t> SplitOp::getSections(int64_t dim, ArrayRef<int64_t> strides,
                                        RankedTensorType inputType) {
-  assert(!inputType && "cannot split 0 tensors");
+  // assert(!inputType && "cannot split 0 tensors");
   assert(!strides.empty() && "cannot do null split");
   SaturatedInteger Splitsize;
   Splitsize =
@@ -757,16 +754,16 @@ ArrayRef<int64_t> SplitOp::getSections(int64_t dim, ArrayRef<int64_t> strides,
           : strides.size();
   SmallVector<int64_t> sections(n_sections);
   for (int64_t i = 0; i < n_sections; ++i) {
-    sections[i] = strides.size() > 1    ? strides[i]
-                  : i == n_sections - 1 ? Splitsize.asInteger() % strides[0]
-                                        : strides[0];
+    sections[i] = strides.size() > 1 ? strides[i]
+                  : (i == n_sections - 1 && Splitsize.asInteger() % strides[0])
+                      ? Splitsize.asInteger() % strides[0]
+                      : strides[0];
   }
-  return ArrayRef(sections);
+  return sections;
 }
 
 void SplitOp::build(OpBuilder &builder, OperationState &result, int64_t dim,
                     ArrayRef<int64_t> strides, Value input) {
-  std::cout << "split build" << std::endl;
   FailureOr<ArrayRef<RankedTensorType>> resultTypes = inferResultType(
       dim, strides, llvm::cast<RankedTensorType>(input.getType()));
   assert(succeeded(resultTypes) && "failed to infer split result types");
@@ -775,7 +772,6 @@ void SplitOp::build(OpBuilder &builder, OperationState &result, int64_t dim,
 
 LogicalResult SplitOp::verify() {
   RankedTensorType inputType = getInputType();
-  std::cout << bool(inputType) << std::endl;
   if (!inputType)
     return emitOpError("input is invalid");
 
@@ -830,14 +826,12 @@ LogicalResult SplitOp::verify() {
              << inputType << "does not match inferred shape "
              << inferredInputType << " static sizes";
   }
-  std::cout << "split build end" << std::endl;
   return success();
 }
 
 LogicalResult
 SplitOp::reifyResultShapes(OpBuilder &builder,
                            ReifiedRankedShapedTypeDims &reifiedReturnShapes) {
-  std::cout << "split reifyResultShapes" << std::endl;
   auto input = getInput();
   int64_t dim = getDim();
   auto strides = getStrides();
@@ -869,7 +863,6 @@ SplitOp::reifyResultShapes(OpBuilder &builder,
 
 void SplitOp::getAsmResultNames(
     function_ref<void(Value, StringRef)> setNameFn) {
-  std::cout << "SplitOp get name" << std::endl;
   if (!getResults().empty())
     setNameFn(getResults().front(), "split");
 }
